@@ -113,7 +113,7 @@ namespace VehicleSystem.Data
                             {
                                 Id = Convert.ToInt32(dr["id"]),
                                 VehicleType = dr["vehicle_type"].ToString(),
-                                Month = Convert.ToDateTime(dr["month"]),
+                                Month = dr.GetDateTime(dr.GetOrdinal("month")),
                                 Amount = Convert.ToDecimal(dr["amount"]),
                                 Description = dr["description"] == DBNull.Value ? null : dr["description"].ToString(),
                                 CreatedAt = Convert.ToDateTime(dr["created_at"])

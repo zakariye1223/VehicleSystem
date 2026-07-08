@@ -125,7 +125,7 @@ namespace VehicleSystem.Data
                                 Id = Convert.ToInt32(dr["id"]),
                                 UserId = Convert.ToInt32(dr["user_id"]),
                                 VehicleType = dr["vehicle_type"].ToString(),
-                                EntryDate = Convert.ToDateTime(dr["entry_date"]),
+                                EntryDate = dr.GetDateTime(dr.GetOrdinal("entry_date")),
                                 Amount = Convert.ToDecimal(dr["amount"]),
                                 Description = dr["description"] == DBNull.Value ? null : dr["description"].ToString(),
                                 CreatedAt = Convert.ToDateTime(dr["created_at"])
@@ -183,7 +183,7 @@ namespace VehicleSystem.Data
                                 Id = Convert.ToInt32(dr["id"]),
                                 UserId = Convert.ToInt32(dr["user_id"]),
                                 VehicleType = dr["vehicle_type"].ToString(),
-                                EntryDate = Convert.ToDateTime(dr["entry_date"]),
+                                EntryDate = dr.GetDateTime(dr.GetOrdinal("entry_date")),
                                 Amount = Convert.ToDecimal(dr["amount"]),
                                 Description = dr["description"] == DBNull.Value ? null : dr["description"].ToString(),
                                 CreatedAt = Convert.ToDateTime(dr["created_at"])
