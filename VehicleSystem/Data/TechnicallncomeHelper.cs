@@ -9,7 +9,7 @@ namespace VehicleSystem.Data
         // Fiiro gaar ah: kani waa PostgreSQL connection string (Npgsql format),
         // ma aha SQL Server format. Talo: geli password-ka config/env variable
         // halkii aad ugu qori lahayd si toos ah code-ka dhexdiisa.
-        string connectionString = "Host=aws-0-eu-west-1.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres;Password=Cade112345##779";
+        string connectionString = "Host=aws-0-eu-west-1.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.jmpnskijsubvpvukiyzd;Password=Cade112345##779";
 
         NpgsqlConnection con;
         NpgsqlDataReader dr;
