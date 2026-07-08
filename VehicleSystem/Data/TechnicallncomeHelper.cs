@@ -1,4 +1,4 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using Npgsql;
 using VehicleSystem.models;
 //using VehicleSystem.Models;
 
@@ -6,12 +6,14 @@ namespace VehicleSystem.Data
 {
     public class TechnicalIncomeHelper
     {
-        string connectionString = "Data Source=DESKTOP-16ANKO9\\SQLEXPRESS;Initial Catalog=VehicleManagement;Integrated Security=True;Trust Server Certificate=True";
+        // Fiiro gaar ah: kani waa PostgreSQL connection string (Npgsql format),
+        // ma aha SQL Server format. Talo: geli password-ka config/env variable
+        // halkii aad ugu qori lahayd si toos ah code-ka dhexdiisa.
+        string connectionString = "Host=aws-0-eu-west-1.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres;Password=Cade112345##779";
 
-
-        SqlConnection con;
-        SqlDataReader dr;
-        SqlCommand cmd;
+        NpgsqlConnection con;
+        NpgsqlDataReader dr;
+        NpgsqlCommand cmd;
         string query;
 
         // ---------- Add Technical Income ----------
@@ -19,14 +21,14 @@ namespace VehicleSystem.Data
         {
             try
             {
-                using (con = new SqlConnection(connectionString))
+                using (con = new NpgsqlConnection(connectionString))
                 {
                     con.Open();
 
-                    query = @"INSERT INTO Technical_Income (vehicle_type, month, amount, description, created_at)
-                              VALUES (@vehicleType, @month, @amount, @description, GETDATE())";
+                    query = @"INSERT INTO technical_income (vehicle_type, month, amount, description, created_at)
+                              VALUES (@vehicleType, @month, @amount, @description, NOW())";
 
-                    cmd = new SqlCommand(query, con);
+                    cmd = new NpgsqlCommand(query, con);
                     cmd.Parameters.AddWithValue("@vehicleType", t.VehicleType);
                     cmd.Parameters.AddWithValue("@month", t.Month);
                     cmd.Parameters.AddWithValue("@amount", t.Amount);
@@ -49,18 +51,18 @@ namespace VehicleSystem.Data
         {
             try
             {
-                using (con = new SqlConnection(connectionString))
+                using (con = new NpgsqlConnection(connectionString))
                 {
                     con.Open();
 
-                    query = @"UPDATE Technical_Income
+                    query = @"UPDATE technical_income
                               SET vehicle_type = @vehicleType,
                                   month = @month,
                                   amount = @amount,
                                   description = @description
                               WHERE id = @id";
 
-                    cmd = new SqlCommand(query, con);
+                    cmd = new NpgsqlCommand(query, con);
                     cmd.Parameters.AddWithValue("@vehicleType", t.VehicleType);
                     cmd.Parameters.AddWithValue("@month", t.Month);
                     cmd.Parameters.AddWithValue("@amount", t.Amount);
@@ -86,18 +88,18 @@ namespace VehicleSystem.Data
             {
                 List<TechnicalIncome> data = new List<TechnicalIncome>();
 
-                using (con = new SqlConnection(connectionString))
+                using (con = new NpgsqlConnection(connectionString))
                 {
                     con.Open();
 
-                    query = "SELECT * FROM Technical_Income WHERE 1 = 1";
+                    query = "SELECT * FROM technical_income WHERE 1 = 1";
 
                     if (id != 0) query += " AND id = @id";
                     if (!string.IsNullOrEmpty(vehicleType)) query += " AND vehicle_type = @vehicleType";
 
                     query += " ORDER BY month DESC";
 
-                    cmd = new SqlCommand(query, con);
+                    cmd = new NpgsqlCommand(query, con);
                     if (id != 0) cmd.Parameters.AddWithValue("@id", id);
                     if (!string.IsNullOrEmpty(vehicleType)) cmd.Parameters.AddWithValue("@vehicleType", vehicleType);
 
@@ -138,16 +140,18 @@ namespace VehicleSystem.Data
         {
             try
             {
-                using (con = new SqlConnection(connectionString))
+                using (con = new NpgsqlConnection(connectionString))
                 {
                     con.Open();
 
-                    query = @"SELECT YEAR(month) AS yr, MONTH(month) AS mo, SUM(amount) AS total_amount
-                              FROM Technical_Income
-                              GROUP BY YEAR(month), MONTH(month)
+                    query = @"SELECT EXTRACT(YEAR FROM month)::int AS yr,
+                                     EXTRACT(MONTH FROM month)::int AS mo,
+                                     SUM(amount) AS total_amount
+                              FROM technical_income
+                              GROUP BY EXTRACT(YEAR FROM month), EXTRACT(MONTH FROM month)
                               ORDER BY yr, mo";
 
-                    cmd = new SqlCommand(query, con);
+                    cmd = new NpgsqlCommand(query, con);
                     dr = cmd.ExecuteReader();
 
                     var results = new List<object>();
@@ -175,12 +179,12 @@ namespace VehicleSystem.Data
         {
             try
             {
-                using (con = new SqlConnection(connectionString))
+                using (con = new NpgsqlConnection(connectionString))
                 {
                     con.Open();
 
-                    query = "DELETE FROM Technical_Income WHERE id = @id";
-                    cmd = new SqlCommand(query, con);
+                    query = "DELETE FROM technical_income WHERE id = @id";
+                    cmd = new NpgsqlCommand(query, con);
                     cmd.Parameters.AddWithValue("@id", id);
 
                     if (cmd.ExecuteNonQuery() > 0)

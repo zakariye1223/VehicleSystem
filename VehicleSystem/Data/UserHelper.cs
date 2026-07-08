@@ -1,4 +1,4 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using Npgsql;
 using System.Security.Cryptography;
 using VehicleSystem.models;
 //using VehicleSystem.Models;
@@ -7,12 +7,14 @@ namespace VehicleSystem.Data
 {
     public class UserHelper
     {
-        string connectionString = "Data Source=DESKTOP-16ANKO9\\SQLEXPRESS;Initial Catalog=VehicleManagement;Integrated Security=True;Trust Server Certificate=True";
+        // Fiiro gaar ah: kani waa PostgreSQL connection string (Npgsql format).
+        // Talo: geli password-ka config/env variable halkii aad ugu qori
+        // lahayd si toos ah code-ka dhexdiisa.
+        string connectionString = "Host=aws-0-eu-west-1.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres;Password=Cade112345##779";
 
-
-        SqlConnection con;
-        SqlDataReader dr;
-        SqlCommand cmd;
+        NpgsqlConnection con;
+        NpgsqlDataReader dr;
+        NpgsqlCommand cmd;
         string query;
 
         // ---------- Password Hashing Helpers ----------
@@ -53,15 +55,15 @@ namespace VehicleSystem.Data
         {
             try
             {
-                using (con = new SqlConnection(connectionString))
+                using (con = new NpgsqlConnection(connectionString))
                 {
                     con.Open();
 
                     // Hubi in username-ka horeba loo isticmaalin
-                    query = "SELECT COUNT(1) FROM Users WHERE username = @username";
-                    cmd = new SqlCommand(query, con);
+                    query = "SELECT COUNT(1) FROM users WHERE username = @username";
+                    cmd = new NpgsqlCommand(query, con);
                     cmd.Parameters.AddWithValue("@username", u.Username);
-                    int exists = (int)cmd.ExecuteScalar();
+                    long exists = (long)cmd.ExecuteScalar();
 
                     if (exists > 0)
                     {
@@ -70,8 +72,8 @@ namespace VehicleSystem.Data
 
                     string hashedPassword = HashPassword(u.Password);
 
-                    query = "INSERT INTO Users (username, password_hash, created_at) VALUES (@username, @passwordHash, GETDATE())";
-                    cmd = new SqlCommand(query, con);
+                    query = "INSERT INTO users (username, password_hash, created_at) VALUES (@username, @passwordHash, NOW())";
+                    cmd = new NpgsqlCommand(query, con);
                     cmd.Parameters.AddWithValue("@username", u.Username);
                     cmd.Parameters.AddWithValue("@passwordHash", hashedPassword);
 
@@ -99,15 +101,15 @@ namespace VehicleSystem.Data
             {
                 List<User> data = new List<User>();
 
-                using (con = new SqlConnection(connectionString))
+                using (con = new NpgsqlConnection(connectionString))
                 {
                     con.Open();
 
-                    query = "SELECT id, username, created_at FROM Users";
+                    query = "SELECT id, username, created_at FROM users";
                     if (id != 0) query += " WHERE id = @id";
                     query += " ORDER BY id DESC";
 
-                    cmd = new SqlCommand(query, con);
+                    cmd = new NpgsqlCommand(query, con);
                     if (id != 0) cmd.Parameters.AddWithValue("@id", id);
 
                     dr = cmd.ExecuteReader();
@@ -143,7 +145,7 @@ namespace VehicleSystem.Data
         {
             try
             {
-                using (con = new SqlConnection(connectionString))
+                using (con = new NpgsqlConnection(connectionString))
                 {
                     con.Open();
 
@@ -152,8 +154,8 @@ namespace VehicleSystem.Data
                         // Password cusub ayaa la geliyay - hash-gareey oo labadaba beddel
                         string hashedPassword = HashPassword(u.Password);
 
-                        query = "UPDATE Users SET username = @username, password_hash = @passwordHash WHERE id = @id";
-                        cmd = new SqlCommand(query, con);
+                        query = "UPDATE users SET username = @username, password_hash = @passwordHash WHERE id = @id";
+                        cmd = new NpgsqlCommand(query, con);
                         cmd.Parameters.AddWithValue("@username", u.Username);
                         cmd.Parameters.AddWithValue("@passwordHash", hashedPassword);
                         cmd.Parameters.AddWithValue("@id", u.Id);
@@ -161,8 +163,8 @@ namespace VehicleSystem.Data
                     else
                     {
                         // Password lama gelin - kaliya username ayaa la beddelayaa
-                        query = "UPDATE Users SET username = @username WHERE id = @id";
-                        cmd = new SqlCommand(query, con);
+                        query = "UPDATE users SET username = @username WHERE id = @id";
+                        cmd = new NpgsqlCommand(query, con);
                         cmd.Parameters.AddWithValue("@username", u.Username);
                         cmd.Parameters.AddWithValue("@id", u.Id);
                     }
@@ -184,12 +186,12 @@ namespace VehicleSystem.Data
         {
             try
             {
-                using (con = new SqlConnection(connectionString))
+                using (con = new NpgsqlConnection(connectionString))
                 {
                     con.Open();
 
-                    query = "DELETE FROM Users WHERE id = @id";
-                    cmd = new SqlCommand(query, con);
+                    query = "DELETE FROM users WHERE id = @id";
+                    cmd = new NpgsqlCommand(query, con);
                     cmd.Parameters.AddWithValue("@id", id);
 
                     if (cmd.ExecuteNonQuery() > 0)
@@ -209,12 +211,12 @@ namespace VehicleSystem.Data
         {
             try
             {
-                using (con = new SqlConnection(connectionString))
+                using (con = new NpgsqlConnection(connectionString))
                 {
                     con.Open();
 
-                    query = "SELECT id, username, password_hash, created_at FROM Users WHERE username = @username";
-                    cmd = new SqlCommand(query, con);
+                    query = "SELECT id, username, password_hash, created_at FROM users WHERE username = @username";
+                    cmd = new NpgsqlCommand(query, con);
                     cmd.Parameters.AddWithValue("@username", u.Username);
 
                     dr = cmd.ExecuteReader();

@@ -1,4 +1,4 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using Npgsql;
 using VehicleSystem.models;
 //using VehicleSystem.Models;
 
@@ -6,12 +6,14 @@ namespace VehicleSystem.Data
 {
     public class VehicleDataHelper
     {
-        string connectionString = "Data Source=DESKTOP-16ANKO9\\SQLEXPRESS;Initial Catalog=VehicleManagement;Integrated Security=True;Trust Server Certificate=True";
+        // Fiiro gaar ah: kani waa PostgreSQL connection string (Npgsql format).
+        // Talo: geli password-ka config/env variable halkii aad ugu qori
+        // lahayd si toos ah code-ka dhexdiisa.
+        string connectionString = "Host=aws-0-eu-west-1.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres;Password=Cade112345##779";
 
-
-        SqlConnection con;
-        SqlDataReader dr;
-        SqlCommand cmd;
+        NpgsqlConnection con;
+        NpgsqlDataReader dr;
+        NpgsqlCommand cmd;
         string query;
 
         // ---------- Add Vehicle Data ----------
@@ -19,14 +21,14 @@ namespace VehicleSystem.Data
         {
             try
             {
-                using (con = new SqlConnection(connectionString))
+                using (con = new NpgsqlConnection(connectionString))
                 {
                     con.Open();
 
-                    query = @"INSERT INTO Vehicle_Data (user_id, vehicle_type, entry_date, amount, description, created_at)
-                              VALUES (@userId, @vehicleType, @entryDate, @amount, @description, GETDATE())";
+                    query = @"INSERT INTO vehicle_data (user_id, vehicle_type, entry_date, amount, description, created_at)
+                              VALUES (@userId, @vehicleType, @entryDate, @amount, @description, NOW())";
 
-                    cmd = new SqlCommand(query, con);
+                    cmd = new NpgsqlCommand(query, con);
                     cmd.Parameters.AddWithValue("@userId", v.UserId);
                     cmd.Parameters.AddWithValue("@vehicleType", v.VehicleType);
                     cmd.Parameters.AddWithValue("@entryDate", v.EntryDate);
@@ -54,18 +56,18 @@ namespace VehicleSystem.Data
         {
             try
             {
-                using (con = new SqlConnection(connectionString))
+                using (con = new NpgsqlConnection(connectionString))
                 {
                     con.Open();
 
-                    query = @"UPDATE Vehicle_Data
+                    query = @"UPDATE vehicle_data
                               SET vehicle_type = @vehicleType,
                                   entry_date   = @entryDate,
                                   amount       = @amount,
                                   description  = @description
                               WHERE id = @id";
 
-                    cmd = new SqlCommand(query, con);
+                    cmd = new NpgsqlCommand(query, con);
                     cmd.Parameters.AddWithValue("@vehicleType", v.VehicleType);
                     cmd.Parameters.AddWithValue("@entryDate", v.EntryDate);
                     cmd.Parameters.AddWithValue("@amount", v.Amount);
@@ -95,11 +97,11 @@ namespace VehicleSystem.Data
             {
                 List<VehicleData> data = new List<VehicleData>();
 
-                using (con = new SqlConnection(connectionString))
+                using (con = new NpgsqlConnection(connectionString))
                 {
                     con.Open();
 
-                    query = "SELECT * FROM Vehicle_Data WHERE 1 = 1";
+                    query = "SELECT * FROM vehicle_data WHERE 1 = 1";
 
                     if (id != 0) query += " AND id = @id";
                     if (userId != 0) query += " AND user_id = @userId";
@@ -107,7 +109,7 @@ namespace VehicleSystem.Data
 
                     query += " ORDER BY entry_date DESC";
 
-                    cmd = new SqlCommand(query, con);
+                    cmd = new NpgsqlCommand(query, con);
                     if (id != 0) cmd.Parameters.AddWithValue("@id", id);
                     if (userId != 0) cmd.Parameters.AddWithValue("@userId", userId);
                     if (!string.IsNullOrEmpty(vehicleType)) cmd.Parameters.AddWithValue("@vehicleType", vehicleType);
@@ -151,20 +153,20 @@ namespace VehicleSystem.Data
             {
                 List<VehicleData> data = new List<VehicleData>();
 
-                using (con = new SqlConnection(connectionString))
+                using (con = new NpgsqlConnection(connectionString))
                 {
                     con.Open();
 
-                    query = "SELECT * FROM Vehicle_Data WHERE 1 = 1";
+                    query = "SELECT * FROM vehicle_data WHERE 1 = 1";
 
                     if (!string.IsNullOrEmpty(vehicleType)) query += " AND vehicle_type = @vehicleType";
                     if (fromDate.HasValue) query += " AND entry_date >= @fromDate";
                     if (toDate.HasValue) query += " AND entry_date <= @toDate";
-                    if (!string.IsNullOrEmpty(keyword)) query += " AND description LIKE @keyword";
+                    if (!string.IsNullOrEmpty(keyword)) query += " AND description ILIKE @keyword";
 
                     query += " ORDER BY entry_date DESC";
 
-                    cmd = new SqlCommand(query, con);
+                    cmd = new NpgsqlCommand(query, con);
                     if (!string.IsNullOrEmpty(vehicleType)) cmd.Parameters.AddWithValue("@vehicleType", vehicleType);
                     if (fromDate.HasValue) cmd.Parameters.AddWithValue("@fromDate", fromDate.Value);
                     if (toDate.HasValue) cmd.Parameters.AddWithValue("@toDate", toDate.Value);
@@ -207,12 +209,12 @@ namespace VehicleSystem.Data
         {
             try
             {
-                using (con = new SqlConnection(connectionString))
+                using (con = new NpgsqlConnection(connectionString))
                 {
                     con.Open();
 
-                    query = "DELETE FROM Vehicle_Data WHERE id = @id";
-                    cmd = new SqlCommand(query, con);
+                    query = "DELETE FROM vehicle_data WHERE id = @id";
+                    cmd = new NpgsqlCommand(query, con);
                     cmd.Parameters.AddWithValue("@id", id);
 
                     if (cmd.ExecuteNonQuery() > 0)
@@ -233,16 +235,18 @@ namespace VehicleSystem.Data
         {
             try
             {
-                using (con = new SqlConnection(connectionString))
+                using (con = new NpgsqlConnection(connectionString))
                 {
                     con.Open();
 
-                    query = @"SELECT YEAR(entry_date) AS yr, MONTH(entry_date) AS mo, SUM(amount) AS total_amount
-                              FROM Vehicle_Data
-                              GROUP BY YEAR(entry_date), MONTH(entry_date)
+                    query = @"SELECT EXTRACT(YEAR FROM entry_date)::int AS yr,
+                                     EXTRACT(MONTH FROM entry_date)::int AS mo,
+                                     SUM(amount) AS total_amount
+                              FROM vehicle_data
+                              GROUP BY EXTRACT(YEAR FROM entry_date), EXTRACT(MONTH FROM entry_date)
                               ORDER BY yr, mo";
 
-                    cmd = new SqlCommand(query, con);
+                    cmd = new NpgsqlCommand(query, con);
                     dr = cmd.ExecuteReader();
 
                     var results = new List<object>();
@@ -270,16 +274,16 @@ namespace VehicleSystem.Data
         {
             try
             {
-                using (con = new SqlConnection(connectionString))
+                using (con = new NpgsqlConnection(connectionString))
                 {
                     con.Open();
 
                     query = @"SELECT vehicle_type, SUM(amount) AS total_amount, COUNT(*) AS total_entries
-                              FROM Vehicle_Data
-                              WHERE YEAR(entry_date) = @year AND MONTH(entry_date) = @month
+                              FROM vehicle_data
+                              WHERE EXTRACT(YEAR FROM entry_date) = @year AND EXTRACT(MONTH FROM entry_date) = @month
                               GROUP BY vehicle_type";
 
-                    cmd = new SqlCommand(query, con);
+                    cmd = new NpgsqlCommand(query, con);
                     cmd.Parameters.AddWithValue("@year", year);
                     cmd.Parameters.AddWithValue("@month", month);
 
